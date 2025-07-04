@@ -29,25 +29,26 @@
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
   <!-- Define updateMap and then run mqtt.js -->
-  <script>
-    let map = L.map('map').setView([20.5937, 78.9629], 5); // Default center (India)
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+<script>
+  let map = L.map('map').setView([20.5937, 78.9629], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
 
-    let marker;
+  let marker;
 
-    function updateMap(lat, lng) {
-      if (marker) {
-        marker.setLatLng([lat, lng]);
-      } else {
-        marker = L.marker([lat, lng]).addTo(map).bindPopup('🚌 Bus Location').openPopup();
-      }
-
-      map.setView([lat, lng], 15);
+  function updateMap(lat, lng) {
+    console.log(`Updating map to ${lat}, ${lng}`);
+    if (marker) {
+      marker.setLatLng([lat, lng]);
+    } else {
+      marker = L.marker([lat, lng]).addTo(map).bindPopup('🚌 Bus Location').openPopup();
     }
-  </script>
+    map.setView([lat, lng], 15);
+  }
+</script>
+
 
   <!-- Your existing mqtt.js -->
   <script src="mqtt.js"></script>
