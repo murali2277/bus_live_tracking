@@ -1,0 +1,113 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #f7f7fa;
+}
+
+#navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(120deg, #1a103d 60%, #7b2ff2 100%);
+  color: #fff;
+  padding: 20px 40px 20px 32px;
+  font-size: 1.3rem;
+  box-shadow: 0 2px 12px #7b2ff240;
+  min-height: 70px;
+  gap: 32px;
+}
+.header-title {
+  font-weight: 700;
+  font-size: 1.6rem;
+  letter-spacing: 1px;
+  flex: 1;
+}
+.header-bus-info {
+  background: rgba(123,47,242,0.12);
+  border-radius: 12px;
+  padding: 8px 18px;
+  margin: 0 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 1.08rem;
+  min-width: 140px;
+  box-shadow: 0 1px 4px #7b2ff220;
+}
+#bus-id {
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 2px;
+}
+#bus-speed {
+  font-weight: 500;
+  color: #00e676;
+}
+#logout-btn {
+  background: linear-gradient(90deg, #7b2ff2, #f357a8);
+  color: #fff;
+  border: none;
+  border-radius: 22px;
+  padding: 10px 28px;
+  font-size: 1.08rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #7b2ff2a0;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  margin-left: 10px;
+}
+#logout-btn:hover {
+  background: linear-gradient(90deg, #f357a8, #7b2ff2);
+  color: #fff;
+  box-shadow: 0 4px 16px #f357a880;
+}
+main {
+  width: 100vw;
+  min-height: calc(100vh - 90px);
+  display: flex;
+  padding-top: 18px;
+}
+#map {
+  flex: 1;
+  height: 100%;
+  min-height: 400px;
+  width: 100%;
+  background: #eee;
+  border-radius: 18px;
+  box-shadow: 0 2px 16px #7b2ff220;
+  margin: 0 32px 32px 32px;
+}
+@media (max-width: 900px) {
+  #navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px 8px;
+    font-size: 1rem;
+    gap: 12px;
+  }
+  .header-title {
+    font-size: 1.1rem;
+  }
+  .header-bus-info {
+    font-size: 0.95rem;
+    margin: 0 0 10px 0;
+    min-width: 100px;
+    padding: 8px 10px;
+  }
+  #logout-btn {
+    padding: 8px 16px;
+    font-size: 0.95rem;
+  }
+  main {
+    padding-top: 10px;
+  }
+  #map {
+    margin: 0 8px 16px 8px;
+    border-radius: 10px;
+  }
+}
