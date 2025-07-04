@@ -6,37 +6,50 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 8080;
 
-// Serve static files from the root directory
+// Serve static files (index.html, app.js, etc.)
 app.use(express.static(path.join(__dirname)));
 
+// Create HTTP server
 const server = http.createServer(app);
+
+// Create WebSocket server
 const wss = new WebSocket.Server({ server });
 
 let lastLocation = null;
 
+// Handle WebSocket connections
 wss.on('connection', function connection(ws) {
-  // Send the last known location to new clients (optional)
+  console.log('📡 New WebSocket connection');
+
+  // Send last known bus location to the new client
   if (lastLocation) {
     ws.send(JSON.stringify(lastLocation));
   }
 
+  // Handle incoming GPS data
   ws.on('message', function incoming(message) {
-    // Expecting JSON: { bus_id, lat, lng }
     try {
       const data = JSON.parse(message);
+      console.log('🚌 Received from ESP32:', data);
       lastLocation = data;
-      // Broadcast to all clients
+
+      // Broadcast to all connected clients (frontend viewers)
       wss.clients.forEach(function each(client) {
-        if (client.readyState === WebSocket.OPEN) {
+        if (client !== ws && client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify(data));
         }
       });
-    } catch (e) {
-      // Ignore invalid messages
+    } catch (error) {
+      console.error('❌ Invalid JSON from client:', message);
     }
+  });
+
+  ws.on('close', () => {
+    console.log('❌ WebSocket client disconnected');
   });
 });
 
+// Start server
 server.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}/`);
+  console.log(`🚀 Server running on http://localhost:${port}`);
 });
