@@ -21,4 +21,3 @@ client.on('message', (topic, message) => {
   }
 });
 
-});
