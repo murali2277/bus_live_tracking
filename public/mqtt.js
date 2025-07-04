@@ -8,15 +8,17 @@ client.on('connect', () => {
     }
   });
 });
-
 client.on('message', (topic, message) => {
+  console.log(`[MQTT] Topic: ${topic}`);
+  console.log(`[MQTT] Message: ${message.toString()}`);
+
   try {
     const data = JSON.parse(message.toString());
     console.log(`🧭 Location: Lat ${data.lat}, Lng ${data.lng}, Bus ${data.bus_id}`);
-
-    // Example: update Leaflet map or UI
-    updateMap(data.lat, data.lng); // Your custom map handler
+    updateMap(data.lat, data.lng);
   } catch (e) {
     console.error('❌ Invalid JSON payload:', e);
   }
+});
+
 });
