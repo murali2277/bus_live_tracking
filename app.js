@@ -12,7 +12,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 let busMarker = null;
 
 // --- Connect to WebSocket server for live updates ---
-const ws = new WebSocket('ws://localhost:8080'); // Change if needed
+const ws = new WebSocket('wss://bus-live-tracking.onrender.com');
 
 ws.onopen = () => {
   console.log('WebSocket connected');
