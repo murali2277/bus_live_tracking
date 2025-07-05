@@ -4,11 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Siet Bus Tracking</title>
-
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
-
-  <!-- Custom CSS -->
   <style>
     html, body {
       margin: 0;
@@ -18,7 +14,6 @@
       background: #0e0a23;
       color: #fff;
     }
-
     header#navbar {
       background: linear-gradient(90deg, #7b2ff2, #f357a8);
       padding: 16px 32px;
@@ -30,29 +25,29 @@
       top: 0;
       z-index: 1000;
     }
-
     .header-title {
       font-size: 1.8rem;
       font-weight: bold;
       letter-spacing: 1px;
     }
-
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
     .header-bus-info {
       display: flex;
       flex-direction: column;
       text-align: right;
     }
-
     #bus-id {
       font-weight: bold;
       font-size: 1rem;
     }
-
     #bus-speed {
       font-size: 0.95rem;
       color: #00e676;
     }
-
     #logout-btn {
       background: #fff;
       color: #7b2ff2;
@@ -63,23 +58,27 @@
       cursor: pointer;
       transition: 0.3s;
     }
-
     #logout-btn:hover {
       background: #f357a8;
       color: white;
     }
-
+    #bus-selector {
+      padding: 8px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      background: #2d1e4f;
+      color: white;
+    }
     main {
       padding: 20px;
     }
-
     #map {
       width: 100%;
       height: calc(100vh - 110px);
       border-radius: 16px;
       box-shadow: 0 0 24px rgba(123, 47, 242, 0.3);
     }
-
     @media (max-width: 768px) {
       header#navbar {
         flex-direction: column;
@@ -95,31 +94,42 @@
 <body>
   <header id="navbar">
     <div class="header-title">🚌 Siet Bus Tracking</div>
-    <div class="header-bus-info">
-      <div id="bus-id">Bus ID:</div>
-      <div id="bus-speed">Speed:</div>
+    <div class="header-controls">
+      <select id="bus-selector">
+        <option value="1">Bus 1</option>
+        <option value="2">Bus 2</option>
+        <option value="3">Bus 3</option>
+      </select>
+      <div class="header-bus-info">
+        <div id="bus-id">Bus ID:</div>
+        <div id="bus-speed">Speed:</div>
+      </div>
+      <button id="logout-btn">Logout</button>
     </div>
-    <button id="logout-btn">Logout</button>
   </header>
 
   <main>
     <div id="map"></div>
   </main>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-
-  <!-- JavaScript Logic -->
   <script>
     const SUPABASE_URL = "https://ghxieyylfuhkoutemmog.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeGlleXlsZnVoa291dGVtbW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDMzMzIsImV4cCI6MjA2NzAxOTMzMn0.CPLQ1HsBdS8xlvk-DIu8BuGoSWQImYsuMgxyH5I0MZg";
 
-    // Redirect if not logged in
     if (localStorage.getItem('isLoggedIn') !== 'true') {
       window.location.href = 'login.html';
     }
 
-    // Setup Leaflet map
+    let selectedBusId = localStorage.getItem('bus_id') || '1';
+    document.getElementById('bus-selector').value = selectedBusId;
+
+    document.getElementById('bus-selector').addEventListener('change', e => {
+      selectedBusId = e.target.value;
+      localStorage.setItem('bus_id', selectedBusId);
+      updateMap();
+    });
+
     const map = L.map('map').setView([20.5937, 78.9629], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
@@ -129,7 +139,7 @@
     let marker = null;
 
     async function fetchBusLocation() {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/gps?select=bus_id,lat,lng,speed&order=id.desc&limit=1`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/gps?bus_id=eq.${selectedBusId}&select=bus_id,lat,lng,speed&order=id.desc&limit=1`, {
         headers: {
           "apikey": SUPABASE_KEY,
           "Authorization": `Bearer ${SUPABASE_KEY}`
@@ -144,18 +154,13 @@
         const bus = await fetchBusLocation();
         if (bus && bus.lat && bus.lng) {
           const { lat, lng, speed, bus_id } = bus;
-
           if (marker) {
             marker.setLatLng([lat, lng]);
             marker.setPopupContent(`🚌 Bus ID: ${bus_id}`);
           } else {
-            marker = L.marker([lat, lng]).addTo(map)
-                     .bindPopup(`🚌 Bus ID: ${bus_id}`).openPopup();
+            marker = L.marker([lat, lng]).addTo(map).bindPopup(`🚌 Bus ID: ${bus_id}`).openPopup();
           }
-
           map.setView([lat, lng], 15);
-
-          // UI updates
           document.getElementById('bus-id').textContent = `Bus ID: ${bus_id}`;
           document.getElementById('bus-speed').textContent = `Speed: ${speed} km/h`;
           document.getElementById('bus-speed').style.color = speed > 60 ? 'red' : '#00e676';
@@ -168,13 +173,12 @@
       }
     }
 
-    // Update every 10 seconds
     updateMap();
     setInterval(updateMap, 10000);
 
-    // Logout handler
     document.getElementById('logout-btn').addEventListener('click', () => {
       localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('bus_id');
       window.location.href = 'login.html';
     });
   </script>
