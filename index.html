@@ -2,31 +2,181 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Siet Bus Tracking</title>
 
   <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
 
-  <!-- Your CSS -->
-  <link rel="stylesheet" href="style.css" />
+  <!-- Custom CSS -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      background: #0e0a23;
+      color: #fff;
+    }
+
+    header#navbar {
+      background: linear-gradient(90deg, #7b2ff2, #f357a8);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .header-title {
+      font-size: 1.8rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .header-bus-info {
+      display: flex;
+      flex-direction: column;
+      text-align: right;
+    }
+
+    #bus-id {
+      font-weight: bold;
+      font-size: 1rem;
+    }
+
+    #bus-speed {
+      font-size: 0.95rem;
+      color: #00e676;
+    }
+
+    #logout-btn {
+      background: #fff;
+      color: #7b2ff2;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #logout-btn:hover {
+      background: #f357a8;
+      color: white;
+    }
+
+    main {
+      padding: 20px;
+    }
+
+    #map {
+      width: 100%;
+      height: calc(100vh - 110px);
+      border-radius: 16px;
+      box-shadow: 0 0 24px rgba(123, 47, 242, 0.3);
+    }
+
+    @media (max-width: 768px) {
+      header#navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .header-bus-info {
+        text-align: left;
+      }
+    }
+  </style>
 </head>
 <body>
   <header id="navbar">
-    <div class="header-title">Siet Bus Tracking</div>
+    <div class="header-title">🚌 Siet Bus Tracking</div>
     <div class="header-bus-info">
-      <span id="bus-id"></span>
-      <span id="bus-speed"></span>
+      <div id="bus-id">Bus ID:</div>
+      <div id="bus-speed">Speed:</div>
     </div>
     <button id="logout-btn">Logout</button>
   </header>
+
   <main>
     <div id="map"></div>
   </main>
+
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-  <script src="app.js"></script>
+
+  <!-- JavaScript Logic -->
+  <script>
+    const SUPABASE_URL = "https://ghxieyylfuhkoutemmog.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeGlleXlsZnVoa291dGVtbW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDMzMzIsImV4cCI6MjA2NzAxOTMzMn0.CPLQ1HsBdS8xlvk-DIu8BuGoSWQImYsuMgxyH5I0MZg";
+
+    // Redirect if not logged in
+    if (localStorage.getItem('isLoggedIn') !== 'true') {
+      window.location.href = 'login.html';
+    }
+
+    // Setup Leaflet map
+    const map = L.map('map').setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let marker = null;
+
+    async function fetchBusLocation() {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/gps?select=bus_id,lat,lng,speed&order=id.desc&limit=1`, {
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      const data = await res.json();
+      return data[0];
+    }
+
+    async function updateMap() {
+      try {
+        const bus = await fetchBusLocation();
+        if (bus && bus.lat && bus.lng) {
+          const { lat, lng, speed, bus_id } = bus;
+
+          if (marker) {
+            marker.setLatLng([lat, lng]);
+            marker.setPopupContent(`🚌 Bus ID: ${bus_id}`);
+          } else {
+            marker = L.marker([lat, lng]).addTo(map)
+                     .bindPopup(`🚌 Bus ID: ${bus_id}`).openPopup();
+          }
+
+          map.setView([lat, lng], 15);
+
+          // UI updates
+          document.getElementById('bus-id').textContent = `Bus ID: ${bus_id}`;
+          document.getElementById('bus-speed').textContent = `Speed: ${speed} km/h`;
+          document.getElementById('bus-speed').style.color = speed > 60 ? 'red' : '#00e676';
+        } else {
+          document.getElementById('bus-id').textContent = `Bus ID: --`;
+          document.getElementById('bus-speed').textContent = `Speed: --`;
+        }
+      } catch (err) {
+        console.error("Failed to fetch location:", err);
+      }
+    }
+
+    // Update every 10 seconds
+    updateMap();
+    setInterval(updateMap, 10000);
+
+    // Logout handler
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      localStorage.removeItem('isLoggedIn');
+      window.location.href = 'login.html';
+    });
+  </script>
 </body>
 </html>
