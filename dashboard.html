@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>SIET Bus Tracking</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      background: #0e0a23; /* deep black/blue background */
+      color: #fff;
+    }
+
+    header#navbar {
+  background: #2d1457;
+  padding: 20px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+    
+
+    .header-title {
+      font-size: 2rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    #bus-selector {
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #3a206b;
+      color: #fff;
+      border: 2px solid #fff;
+      font-weight: bold;
+    }
+
+    #logout-btn {
+      background: #fff;
+      color: #7b2ff2;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #logout-btn:hover {
+      background: #f357a8;
+      color: white;
+    }
+
+    main {
+      padding-top: 80px; /* height of header */
+      height: calc(100vh - 80px);
+      position: relative;
+      box-sizing: border-box;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    #speed-display {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #00e676;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    @media (max-width: 768px) {
+      .header-title {
+        font-size: 1.5rem;
+      }
+      #speed-display {
+        font-size: 1rem;
+        padding: 8px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header id="navbar">
+    <div class="header-left">
+      <div class="header-title">🚌 SIET Bus Tracking</div>
+    </div>
+    <div class="header-right">
+      <select id="bus-selector">
+        <!-- Options will be added dynamically -->
+      </select>
+      <button id="logout-btn">Logout</button>
+    </div>
+  </header>
+  
+
+  <main>
+    <div id="map"></div>
+    <div id="speed-display">Speed: -- km/h</div>
+  </main>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const SUPABASE_URL = "https://ghxieyylfuhkoutemmog.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeGlleXlsZnVoa291dGVtbW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDMzMzIsImV4cCI6MjA2NzAxOTMzMn0.CPLQ1HsBdS8xlvk-DIu8BuGoSWQImYsuMgxyH5I0MZg";
+
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Authentication check - must be at the top
+    async function checkAuth() {
+      // Check if user is logged in via localStorage
+      const isLoggedIn = localStorage.getItem('isLoggedIn');
+      if (!isLoggedIn) {
+        window.location.replace('login.html');
+        return false;
+      }
+
+      // Verify with Supabase session
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      if (error || !session) {
+        localStorage.removeItem('isLoggedIn');
+        window.location.replace('login.html');
+        return false;
+      }
+
+      return true;
+    }
+
+    // Prevent back button access after logout
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted) {
+        // Page was loaded from back-forward cache
+        checkAuth().then(isAuthenticated => {
+          if (!isAuthenticated) {
+            return;
+          }
+        });
+      }
+    });
+
+    // Additional security: Check auth on every page load and focus
+    window.addEventListener('load', checkAuth);
+    window.addEventListener('focus', checkAuth);
+    window.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        checkAuth();
+      }
+    });
+
+    // Prevent right-click context menu
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+    });
+
+    // Disable browser back button completely
+    window.history.pushState(null, null, window.location.href);
+    window.addEventListener('popstate', function() {
+      window.history.pushState(null, null, window.location.href);
+      checkAuth();
+    });
+
+    // Check authentication immediately when page loads
+    checkAuth().then(isAuthenticated => {
+      if (!isAuthenticated) {
+        return; // Page will redirect, don't continue
+      }
+      // Only initialize the app if authenticated
+      initializeApp();
+    });
+
+    // Continuous authentication check every 30 seconds
+    setInterval(() => {
+      checkAuth().then(isAuthenticated => {
+        if (!isAuthenticated) {
+          // Force redirect if authentication fails
+          window.location.replace('index.html');
+        }
+      });
+    }, 30000);
+
+    function initializeApp() {
+
+    const busIcon = L.icon({
+      iconUrl: 'bus_image.webp',
+      iconSize: [50, 50],
+      iconAnchor: [25, 50],
+      popupAnchor: [0, -50],
+    });
+
+    let selectedBusId;
+
+    document.getElementById('bus-selector').addEventListener('change', (e) => {
+      selectedBusId = e.target.value;
+      updateMap();
+    });
+
+    const map = L.map('map').setView([20.5937, 78.9629], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let marker = null;
+
+    async function fetchBusLocation() {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/gps?bus_id=eq.${selectedBusId}&select=bus_id,lat,lng,speed&order=id.desc&limit=1`, {
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json"
+        }
+      });
+      const data = await res.json();
+      return data[0];
+    }
+
+    async function updateMap() {
+      try {
+        const bus = await fetchBusLocation();
+        if (bus && bus.lat && bus.lng) {
+          const { lat, lng, speed, bus_id } = bus;
+
+          if (marker) {
+            marker.setLatLng([lat, lng]);
+            marker.setPopupContent(`🚌 Bus ID: ${bus_id}`);
+          } else {
+            marker = L.marker([lat, lng], { icon: busIcon })
+                      .addTo(map)
+                      .bindPopup(`🚌 Bus ID: ${bus_id}`)
+                      .openPopup();
+          }
+
+          map.setView([lat, lng], 15);
+          document.getElementById('speed-display').textContent = `Bus ${bus_id} Speed: ${speed} km/h`;
+          document.getElementById('speed-display').style.color = speed > 60 ? 'red' : '#00e676';
+        } else {
+          document.getElementById('speed-display').textContent = "Speed: -- km/h";
+        }
+      } catch (err) {
+        console.error("Failed to fetch location:", err);
+      }
+    }
+
+    async function fetchBusList() {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/gps?select=bus_id`, {
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json"
+        }
+      });
+      const data = await res.json();
+      // Get unique bus IDs from the response
+      const uniqueBusIds = [...new Set(data.map(bus => bus.bus_id))];
+      return uniqueBusIds.map(busId => ({ bus_id: busId }));
+    }
+
+    async function populateBusSelector() {
+      try {
+        const busSelector = document.getElementById('bus-selector');
+        busSelector.innerHTML = ""; // Clear existing options
+        
+        // Add a default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = "";
+        defaultOption.textContent = "Select a bus...";
+        busSelector.appendChild(defaultOption);
+        
+        const buses = await fetchBusList();
+        console.log('Fetched buses:', buses); // Debug log
+        
+        if (buses && buses.length > 0) {
+          buses.forEach(bus => {
+            const option = document.createElement('option');
+            option.value = bus.bus_id;
+            option.textContent = `Bus ${bus.bus_id}`;
+            busSelector.appendChild(option);
+          });
+          
+          // Set selectedBusId to the first bus by default
+          busSelector.value = buses[0].bus_id;
+          selectedBusId = buses[0].bus_id;
+          updateMap();
+        } else {
+          console.log('No buses found in the database');
+        }
+      } catch (error) {
+        console.error('Error populating bus selector:', error);
+      }
+    }
+
+    // Call this on page load
+    populateBusSelector();
+
+    updateMap();
+    setInterval(updateMap, 10000);
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      // Sign out from Supabase
+      await supabaseClient.auth.signOut();
+      // Clear localStorage
+      localStorage.removeItem('isLoggedIn');
+      // Clear any cached data
+      sessionStorage.clear();
+      // Clear browser history
+      window.history.go(-(window.history.length - 1));
+      // Use replace to prevent back button access
+      window.location.replace('index.html');
+    });
+    } // Close initializeApp function
+  </script>
+
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+</body>
+</html>

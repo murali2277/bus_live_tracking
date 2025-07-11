@@ -3,217 +3,142 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SIET Bus Tracking</title>
-
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Login - SIET Bus Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    html, body {
+    * {
+      box-sizing: border-box;
+    }
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: 'Segoe UI', sans-serif;
-      background: #0e0a23;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(to right, #1f1147, #7b2ff2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .login-box {
+      background: #1b1b2f;
+      padding: 40px 30px;
+      border-radius: 16px;
+      box-shadow: 0 0 20px rgba(123, 47, 242, 0.4);
+      width: 100%;
+      max-width: 400px;
       color: #fff;
     }
-
-    header#navbar {
-  background: linear-gradient(90deg, #cbf22f, #30f20e);
-  padding: 20px 32px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-sizing: border-box;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-    
-
-    .header-title {
-      font-size: 2rem;
-      font-weight: bold;
-      letter-spacing: 1px;
+    .login-box h2 {
+      text-align: center;
+      margin-bottom: 24px;
+      font-weight: 700;
+      color: #f357a8;
     }
-
-    #bus-selector {
-      padding: 8px;
-      border-radius: 8px;
+    .input-group {
+      margin-bottom: 20px;
+    }
+    .input-group label {
+      display: block;
+      margin-bottom: 6px;
+      color: #ccc;
+      font-weight: 500;
+    }
+    .input-group input {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: #2a2a40;
+      color: #fff;
       font-size: 1rem;
-      background: #2d1e4f;
-      color: white;
-      border: none;
     }
-
-    #logout-btn {
-      background: #fff;
-      color: #7b2ff2;
+    .input-group input:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #7b2ff2;
+    }
+    .login-box button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(90deg, #7b2ff2, #f357a8);
       border: none;
-      border-radius: 20px;
-      padding: 10px 20px;
-      font-weight: bold;
+      border-radius: 10px;
+      color: white;
+      font-weight: 600;
+      font-size: 1rem;
       cursor: pointer;
       transition: 0.3s;
     }
-
-    #logout-btn:hover {
-      background: #f357a8;
-      color: white;
+    .login-box button:hover {
+      background: linear-gradient(90deg, #f357a8, #7b2ff2);
     }
-
-    main {
-      padding-top: 80px; /* height of header */
-      height: calc(100vh - 80px);
-      position: relative;
-      box-sizing: border-box;
+    .error {
+      text-align: center;
+      color: #ff4d6d;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      display: none;
     }
-
-    #map {
-      width: 100%;
-      height: 100%;
-    }
-
-    #speed-display {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.7);
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: #00e676;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    }
-
-    @media (max-width: 768px) {
-      .header-title {
-        font-size: 1.5rem;
-      }
-      #speed-display {
-        font-size: 1rem;
-        padding: 8px 16px;
+    @media (max-width: 480px) {
+      .login-box {
+        margin: 0 16px;
+        padding: 30px 20px;
       }
     }
   </style>
 </head>
 <body>
-  <header id="navbar">
-    <div class="header-left">
-      <div class="header-title">🚌 SIET Bus Tracking</div>
-    </div>
-    <div class="header-right">
-      <select id="bus-selector">
-        <option value="1">Bus 1</option>
-        <option value="2">Bus 2</option>
-        <option value="3">Bus 3</option>
-      </select>
-      <button id="logout-btn">Logout</button>
-    </div>
-  </header>
-  
 
-  <main>
-    <div id="map"></div>
-    <div id="speed-display">Speed: -- km/h</div>
-  </main>
+  <div class="login-box">
+    <h2>SIET Bus Tracker</h2>
+    <form id="login-form">
+      <div class="error" id="login-error">❌ Invalid email or password</div>
+      <div class="input-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" required />
+      </div>
+      <div class="input-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" required />
+      </div>
+      <button type="submit">Login</button>
+    </form>
+  </div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-
-  <script>
-    const SUPABASE_URL = "https://ghxieyylfuhkoutemmog.supabase.co";
+ <script>
+  const SUPABASE_URL = "https://ghxieyylfuhkoutemmog.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeGlleXlsZnVoa291dGVtbW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDMzMzIsImV4cCI6MjA2NzAxOTMzMn0.CPLQ1HsBdS8xlvk-DIu8BuGoSWQImYsuMgxyH5I0MZg";
 
-    const busIcon = L.icon({
-      iconUrl: 'bus_image.webp',
-      iconSize: [50, 50],
-      iconAnchor: [25, 50],
-      popupAnchor: [0, -50],
+  // Clear any existing authentication when visiting login page
+  localStorage.removeItem('isLoggedIn');
+  sessionStorage.clear();
+
+
+  const { createClient } = supabase;
+  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  document.getElementById('login-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const errorEl = document.getElementById('login-error');
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
     });
 
-    let selectedBusId = document.getElementById('bus-selector').value;
-
-    document.getElementById('bus-selector').addEventListener('change', (e) => {
-      selectedBusId = e.target.value;
-      updateMap();
-    });
-
-    const map = L.map('map').setView([20.5937, 78.9629], 5);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
-
-    let marker = null;
-
-    async function fetchBusLocation() {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/gps?bus_id=eq.${selectedBusId}&select=bus_id,lat,lng,speed&order=id.desc&limit=1`, {
-        headers: {
-          "apikey": SUPABASE_KEY,
-          "Authorization": `Bearer ${SUPABASE_KEY}`,
-          "Content-Type": "application/json"
-        }
-      });
-      const data = await res.json();
-      return data[0];
+    if (error) {
+      errorEl.textContent = `❌ ${error.message}`;
+      errorEl.style.display = 'block';
+    } else {
+      localStorage.setItem('isLoggedIn', 'true');
+      window.location.replace('dashboard.html');
     }
+  });
+</script>
 
-    async function updateMap() {
-      try {
-        const bus = await fetchBusLocation();
-        if (bus && bus.lat && bus.lng) {
-          const { lat, lng, speed, bus_id } = bus;
-
-          if (marker) {
-            marker.setLatLng([lat, lng]);
-            marker.setPopupContent(`🚌 Bus ID: ${bus_id}`);
-          } else {
-            marker = L.marker([lat, lng], { icon: busIcon })
-                      .addTo(map)
-                      .bindPopup(`🚌 Bus ID: ${bus_id}`)
-                      .openPopup();
-          }
-
-          map.setView([lat, lng], 15);
-          document.getElementById('speed-display').textContent = `Bus ${bus_id} Speed: ${speed} km/h`;
-          document.getElementById('speed-display').style.color = speed > 60 ? 'red' : '#00e676';
-        } else {
-          document.getElementById('speed-display').textContent = "Speed: -- km/h";
-        }
-      } catch (err) {
-        console.error("Failed to fetch location:", err);
-      }
-    }
-
-    updateMap();
-    setInterval(updateMap, 10000);
-
-    document.getElementById('logout-btn').addEventListener('click', () => {
-      localStorage.removeItem('isLoggedIn');
-      window.location.href = 'login.html';
-    });
-  </script>
-
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 </body>
 </html>
